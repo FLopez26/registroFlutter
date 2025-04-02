@@ -1,4 +1,4 @@
-import 'package:fichajes/src/constants/access.dart';
+import 'package:fichajes/constants/access.dart';
 import 'package:flutter/material.dart';
 
 import '../../signing/view/signing_page.dart';
