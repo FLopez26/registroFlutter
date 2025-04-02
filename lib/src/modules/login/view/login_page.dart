@@ -11,8 +11,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static const String correctEmail = email;
-  static const String correctPassword = password;
+  static const String correctEmail = adminEmail;
+  static const String correctPassword = adminPassword;
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -101,14 +101,16 @@ class _LoginPageState extends State<LoginPage> {
 
   void _login() {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Inicio de sesión exitoso")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Inicio de sesión exitoso")),
+      );
       FocusScope.of(context).unfocus();
 
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => SigningPage()),
+        MaterialPageRoute(
+          builder: (context) => SigningPage(userEmail: _emailController.text),
+        ),
       );
     }
   }

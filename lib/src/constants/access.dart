@@ -1,2 +1,2 @@
-const email = "admin";
-const password = "123456";
+const adminEmail = "admin";
+const adminPassword = "admin";
