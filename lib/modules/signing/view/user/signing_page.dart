@@ -2,7 +2,7 @@ import 'package:fichajes/constants/companies.dart';
 import 'package:fichajes/utils/dialogs/confirm_signing_dialog.dart';
 import 'package:flutter/material.dart';
 
-import '../../profile/view/profile_page.dart';
+import '../../../profile/view/profile_page.dart';
 
 class SigningPage extends StatefulWidget {
   final String userEmail;

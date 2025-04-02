@@ -1,7 +1,9 @@
 import 'package:fichajes/constants/access.dart';
+import 'package:fichajes/constants/users.dart';
+import 'package:fichajes/modules/signing/view/admin/signing_admin_page.dart';
 import 'package:flutter/material.dart';
 
-import '../../signing/view/signing_page.dart';
+import '../../signing/view/user/signing_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,8 +13,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static const String correctEmail = adminEmail;
-  static const String correctPassword = adminPassword;
+  static bool isAdminEmail = false;
+  static bool isAdminPass = false;
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -91,12 +93,26 @@ class _LoginPageState extends State<LoginPage> {
       r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
     );
     return regex.hasMatch(email);*/
-    return email == correctEmail;
+    if(adminEmail == email){
+      isAdminEmail = true;
+      return true;
+    }
+    for(var user in users){
+      if(user.email == email){return true;}
+    }
+    return false;
   }
 
   bool _isValidPassword(String password) {
     /*return password.trim().length >= 6;*/
-    return password == correctPassword;
+    if(adminPassword == password){
+      isAdminPass = true;
+      return true;
+    }
+    for(var user in users){
+      if(user.password == password){return true;}
+    }
+    return false;
   }
 
   void _login() {
@@ -105,13 +121,23 @@ class _LoginPageState extends State<LoginPage> {
         const SnackBar(content: Text("Inicio de sesión exitoso")),
       );
       FocusScope.of(context).unfocus();
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SigningPage(userEmail: _emailController.text),
-        ),
-      );
+      if(isAdminEmail == true && isAdminPass == true){
+        isAdminEmail = false;
+        isAdminPass = false;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SigningAdminPage(userEmail: _emailController.text),
+          ),
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SigningPage(userEmail: _emailController.text),
+          ),
+        );
+      }
     }
   }
 }
