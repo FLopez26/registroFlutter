@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../login/view/login_page.dart';
 
 class ProfilePage extends StatelessWidget {
-  final String userEmail;
-  const ProfilePage({super.key, required this.userEmail});
+  final String? user;
+  const ProfilePage({super.key, this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +13,7 @@ class ProfilePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("Correo: $userEmail", style: TextStyle(fontSize: 20)),
+            Text("Correo: $user" , style: TextStyle(fontSize: 20)),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {

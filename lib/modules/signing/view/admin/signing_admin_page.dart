@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import '../../../profile/view/profile_page.dart';
 
 class SigningAdminPage extends StatefulWidget {
-  final String userEmail;
+  final String user;
 
   const SigningAdminPage({
     super.key,
-    required this.userEmail
+    required this.user
   });
 
   @override
@@ -37,7 +37,7 @@ class _SigningPageState extends State<SigningAdminPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ProfilePage(userEmail: widget.userEmail),
+                  builder: (context) => ProfilePage(user: widget.user),
                 ),
               );
             },
@@ -53,15 +53,15 @@ class _SigningPageState extends State<SigningAdminPage> {
             child: ListView.builder(
               itemCount: users.length,
               itemBuilder: (context, index) {
-                final user = users[index];
+                final userFromList = users[index];
                 return Card(
-                  color: user.working ? Colors.green : Colors.red,
+                  color: userFromList.working ? Colors.green : Colors.red,
                   child: ListTile(
-                    title: Text(user.email),
+                    title: Text(userFromList.email),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("| ${user.companies.join(' | ')} |")
+                        Text("| ${userFromList.companies.join(' | ')} |")
                       ],
                     ),
                     trailing: IconButton(

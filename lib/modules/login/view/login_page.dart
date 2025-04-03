@@ -3,6 +3,7 @@ import 'package:fichajes/constants/users.dart';
 import 'package:fichajes/modules/signing/view/admin/signing_admin_page.dart';
 import 'package:flutter/material.dart';
 
+import '../../../models/app/user_model.dart';
 import '../../signing/view/user/signing_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -15,6 +16,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   static bool isAdminEmail = false;
   static bool isAdminPass = false;
+  late String emailTyped;
+  late String passwordTyped;
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -98,7 +101,10 @@ class _LoginPageState extends State<LoginPage> {
       return true;
     }
     for(var user in users){
-      if(user.email == email){return true;}
+      if(user.email == email){
+        emailTyped = email;
+        return true;
+      }
     }
     return false;
   }
@@ -110,7 +116,10 @@ class _LoginPageState extends State<LoginPage> {
       return true;
     }
     for(var user in users){
-      if(user.password == password){return true;}
+      if(user.password == password){
+        passwordTyped = password;
+        return true;
+      }
     }
     return false;
   }
@@ -124,17 +133,25 @@ class _LoginPageState extends State<LoginPage> {
       if(isAdminEmail == true && isAdminPass == true){
         isAdminEmail = false;
         isAdminPass = false;
+
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SigningAdminPage(userEmail: _emailController.text),
+            builder: (context) => SigningAdminPage(user: "Administrator"),
           ),
         );
       } else {
+        late User userSelected;
+        for(var user in users){
+          if(user.email==emailTyped && user.password==passwordTyped){
+            userSelected=user;
+          }
+        }
+
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SigningPage(userEmail: _emailController.text),
+            builder: (context) => SigningPage(user: userSelected),
           ),
         );
       }

@@ -1,16 +1,14 @@
 import 'package:fichajes/constants/companies.dart';
+import 'package:fichajes/models/app/user_model.dart';
 import 'package:fichajes/utils/dialogs/confirm_signing_dialog.dart';
 import 'package:flutter/material.dart';
 
 import '../../../profile/view/profile_page.dart';
 
 class SigningPage extends StatefulWidget {
-  final String userEmail;
+  final User? user;
 
-  const SigningPage({
-    super.key,
-    required this.userEmail
-});
+  const SigningPage({super.key, this.user});
 
   @override
   State<SigningPage> createState() => _SigningPageState();
@@ -20,7 +18,13 @@ class _SigningPageState extends State<SigningPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   String? companySelected;
   String? locationSelected;
-  List<String> totalCompanies = companies;
+  List<String>? totalCompanies;
+
+  @override
+  void initState() {
+    super.initState();
+    totalCompanies = widget.user?.companies;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +41,7 @@ class _SigningPageState extends State<SigningPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ProfilePage(userEmail: widget.userEmail),
+                  builder: (context) => ProfilePage(user: widget.user?.email),
                 ),
               );
             },
@@ -90,7 +94,7 @@ class _SigningPageState extends State<SigningPage> {
                     });
                   },
                   items:
-                      companies.map<DropdownMenuItem<String>>((String value) {
+                      totalCompanies?.map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
                           child: Text(value),
@@ -140,7 +144,10 @@ class _SigningPageState extends State<SigningPage> {
                         ),
                         child: const Text(
                           "Fichar",
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -181,11 +188,12 @@ class _SigningPageState extends State<SigningPage> {
 
     showDialog(
       context: context,
-      builder: (context) => ConfirmSigningDialog(
-        company: companySelected!,
-        position: locationSelected!,
-        time: currentTime,
-      ),
+      builder:
+          (context) => ConfirmSigningDialog(
+            company: companySelected!,
+            position: locationSelected!,
+            time: currentTime,
+          ),
     );
   }
 }
