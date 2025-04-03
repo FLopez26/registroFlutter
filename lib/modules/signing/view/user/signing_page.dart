@@ -1,7 +1,10 @@
 import 'package:fichajes/constants/companies.dart';
+import 'package:fichajes/models/app/company_model.dart';
 import 'package:fichajes/models/app/user_model.dart';
+import 'package:fichajes/modules/geolocator/view/geolocator_page.dart';
 import 'package:fichajes/utils/dialogs/confirm_signing_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../../profile/view/profile_page.dart';
 
@@ -42,6 +45,18 @@ class _SigningPageState extends State<SigningPage> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => ProfilePage(user: widget.user?.email),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.location_pin),
+            tooltip: 'Location',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LocationScreen(),
                 ),
               );
             },
@@ -134,6 +149,7 @@ class _SigningPageState extends State<SigningPage> {
                       width: 150,
                       height: 60,
                       child: ElevatedButton(
+
                         onPressed: _signing,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.cyan,
@@ -176,7 +192,7 @@ class _SigningPageState extends State<SigningPage> {
     }
   }
 
-  void _signing() {
+  void _signing() async {
     if (companySelected == null || locationSelected == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Debe seleccionar una empresa y un puesto")),
@@ -184,16 +200,93 @@ class _SigningPageState extends State<SigningPage> {
       return;
     }
 
-    String currentTime = TimeOfDay.now().format(context);
+    Position? userPosition = await getCurrentLocation();
+    if (userPosition == null) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Error"),
+          content: Text("No se pudo obtener la ubicación."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Aceptar"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
 
+    // Obtener la empresa más cercana
+    Company? nearestCompany = getNearestLocation(userPosition);
+
+    if (nearestCompany == null || companySelected != nearestCompany.name) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Ubicación incorrecta"),
+          content: Text("No está en la ubicación correcta para fichar en $companySelected."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Aceptar"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Si la ubicación es correcta, permitir el fichaje
+    String currentTime = TimeOfDay.now().format(context);
     showDialog(
       context: context,
-      builder:
-          (context) => ConfirmSigningDialog(
-            company: companySelected!,
-            position: locationSelected!,
-            time: currentTime,
-          ),
+      builder: (context) => ConfirmSigningDialog(
+        company: companySelected!,
+        position: locationSelected!,
+        time: currentTime,
+      ),
     );
   }
+
+  Future<Position?> getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      print("Ubicación deshabilitada");
+      return null;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.deniedForever) {
+        print("Permisos denegados permanentemente.");
+        return null;
+      }
+    }
+
+    return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+  }
+
+  Company? getNearestLocation(Position userPosition) {
+    double minDistance = double.infinity;
+    Company? nearestLocation;
+
+    for (var company in companies) {
+      double distance = Geolocator.distanceBetween(
+        userPosition.latitude, userPosition.longitude,
+        company.latitude, company.longitude,
+      );
+
+      if (distance < 1000 && distance < minDistance) {
+        minDistance = distance;
+        nearestLocation = company;
+      }
+    }
+
+    return nearestLocation;
+  }
+
+
 }

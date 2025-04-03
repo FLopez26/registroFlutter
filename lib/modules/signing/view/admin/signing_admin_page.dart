@@ -2,6 +2,7 @@ import 'package:fichajes/constants/companies.dart';
 import 'package:fichajes/constants/users.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../models/app/company_model.dart';
 import '../../../profile/view/profile_page.dart';
 
 class SigningAdminPage extends StatefulWidget {
@@ -20,7 +21,7 @@ class _SigningPageState extends State<SigningAdminPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   String? companySelected;
   String? locationSelected;
-  List<String> totalCompanies = companies;
+  List<Company> totalCompanies = companies;
 
   @override
   Widget build(BuildContext context) {
