@@ -1,9 +1,10 @@
-import 'package:fichajes/constants/access.dart';
-import 'package:fichajes/constants/users.dart';
-import 'package:fichajes/modules/signing/view/admin/signing_admin_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fichajes/cubits/user_cubit.dart';
+import 'package:fichajes/cubits/admin_cubit.dart';
 
 import '../../../models/app/user_model.dart';
+import '../../signing/view/admin/signing_admin_page.dart';
 import '../../signing/view/user/signing_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -54,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
                   if (value == null || value.isEmpty) {
                     return "Ingrese un correo";
                   } else if (!_isValidEmail(value)) {
-                    return "Ingrese un correo válido";
+                    return "Correo no válido";
                   }
                   return null;
                 },
@@ -92,36 +93,64 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   bool _isValidEmail(String email) {
-    /*final RegExp regex = RegExp(
-      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-    );
-    return regex.hasMatch(email);*/
-    if(adminEmail == email){
-      isAdminEmail = true;
-      return true;
-    }
-    for(var user in users){
-      if(user.email == email){
+    bool emailFound = false;
+    final userCubit = context.read<UserCubit>();
+    final adminCubit = context.read<AdminCubit>();
+
+    // Obtener todos los usuarios y administradores
+    userCubit.getAllUsers();
+    adminCubit.getAllAdmins();
+
+    // Comprobar si el correo está en los administradores
+    adminCubit.state.forEach((admin) {
+      if (admin.email == email) {
+        isAdminEmail = true;
         emailTyped = email;
-        return true;
+        emailFound = true;
       }
+    });
+
+    // Comprobar si el correo está en los usuarios
+    if (!emailFound) {
+      userCubit.state.forEach((user) {
+        if (user.email == email) {
+          emailTyped = email;
+          emailFound = true;
+        }
+      });
     }
-    return false;
+
+    return emailFound;
   }
 
   bool _isValidPassword(String password) {
-    /*return password.trim().length >= 6;*/
-    if(adminPassword == password){
-      isAdminPass = true;
-      return true;
+    bool passwordValid = false;
+
+    final userCubit = context.read<UserCubit>();
+    final adminCubit = context.read<AdminCubit>();
+
+    // Si es admin, se valida la contraseña con los administradores
+    if (isAdminEmail) {
+      adminCubit.state.forEach((admin) {
+        if (admin.password == password && admin.email == emailTyped) {
+          passwordTyped = password;
+          isAdminPass = true;
+          passwordValid = true;
+        }
+      });
     }
-    for(var user in users){
-      if(user.password == password){
-        passwordTyped = password;
-        return true;
-      }
+
+    // Si no es admin, se valida con los usuarios
+    if (!isAdminEmail) {
+      userCubit.state.forEach((user) {
+        if (user.password == password && user.email == emailTyped) {
+          passwordTyped = password;
+          passwordValid = true;
+        }
+      });
     }
-    return false;
+
+    return passwordValid;
   }
 
   void _login() {
@@ -130,7 +159,9 @@ class _LoginPageState extends State<LoginPage> {
         const SnackBar(content: Text("Inicio de sesión exitoso")),
       );
       FocusScope.of(context).unfocus();
-      if(isAdminEmail == true && isAdminPass == true){
+
+      // Si es un administrador
+      if (isAdminEmail && isAdminPass) {
         isAdminEmail = false;
         isAdminPass = false;
 
@@ -141,13 +172,18 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       } else {
+        // Si no es un administrador, buscamos al usuario
         late User userSelected;
-        for(var user in users){
-          if(user.email==emailTyped && user.password==passwordTyped){
-            userSelected=user;
-          }
-        }
 
+        // Busca el usuario que coincide con el email y la contraseña
+        final userCubit = context.read<UserCubit>();
+        userCubit.state.forEach((user) {
+          if (user.email == emailTyped && user.password == passwordTyped) {
+            userSelected = user;
+          }
+        });
+
+        // Navegar a la página de usuario
         Navigator.push(
           context,
           MaterialPageRoute(
