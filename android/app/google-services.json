@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "217151787655",
+    "project_id": "fichajes-ba705",
+    "storage_bucket": "fichajes-ba705.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:217151787655:android:4901d2d25a4c6878e11e22",
+        "android_client_info": {
+          "package_name": "com.example.fichajes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAahmXE9zN8DEf0zN8ukboFQw1RKACLiu4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
