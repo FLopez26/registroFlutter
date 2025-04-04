@@ -8,7 +8,7 @@ class User {
   bool working; // True trabajando, false no
   List<Company> companies; // Lista de objetos Company
   String? id; // ID generado automáticamente por Firestore
-
+  
   User({
     required this.email,
     required this.password,

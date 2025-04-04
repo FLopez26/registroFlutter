@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:fichajes/models/app/workPoints_model.dart';
+import 'package:fichajes/models/app/workPoint_model.dart';
 
 class Company {
   final String name;
