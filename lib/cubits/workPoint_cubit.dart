@@ -8,16 +8,19 @@ class WorkPointCubit extends Cubit<List<WorkPoint>> {
   // Método para obtener los puntos de trabajo de una compañía
   Future<void> getWorkPoints(String userId, String companyId) async {
     try {
-      final workPoints = await FirebaseFirestore.instance
+      final snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('companies')
           .doc(companyId)
           .collection('workPoints')
-          .get()
-          .then((snapshot) => snapshot.docs
-          .map((doc) => WorkPoint.fromMap(doc.data()))
-          .toList());
+          .get();
+
+      final workPoints = snapshot.docs.map((doc) {
+        final wp = WorkPoint.fromMap(doc.data());
+        wp.id = doc.id;
+        return wp;
+      }).toList();
 
       emit(workPoints); // Emitir la nueva lista de WorkPoints
     } catch (e) {

@@ -1,23 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'company_model.dart';
 
 class User {
   final String email;
   final String password;
   bool working; // True trabajando, false no
-  List<Company> companies; // Lista de objetos Company
-  String? id; // ID generado automáticamente por Firestore
-  
+  List<Company> companies;
+  String? id;
+
   User({
     required this.email,
     required this.password,
-    this.working = false, // Valor por defecto
+    this.working = false,
     required this.companies,
-    this.id, // El ID es opcional, porque lo asignará Firestore
+    this.id,
   });
 
-  // Convertir el objeto User a un mapa (para enviar a Firebase)
   Map<String, dynamic> toMap() {
     return {
       'email': email,
@@ -27,34 +25,31 @@ class User {
     };
   }
 
-  // Crear un objeto User a partir de un mapa (cuando se recibe desde Firebase)
   factory User.fromMap(Map<String, dynamic> map, String documentId) {
     return User(
-      id: documentId, // El ID de Firestore será pasado aquí
+      id: documentId,
       email: map['email'],
       password: map['password'],
-      working: map['working'] ?? false,  // Valor por defecto si no está en el mapa
-      companies: (map['companies'] as List)
-          .map((companyMap) => Company.fromMap(companyMap))
-          .toList(),
+      working: map['working'] ?? false,
+      companies: [],
     );
   }
 
   // Método para guardar el usuario en Firestore
   Future<void> save() async {
-    final userRef = FirebaseFirestore.instance.collection('users').doc(); // Firestore genera un ID automáticamente
-    this.id = userRef.id; // Asignamos el ID generado por Firestore a la propiedad `id`
+    final userRef = FirebaseFirestore.instance.collection('users').doc();
+    this.id = userRef.id;
     await userRef.set(toMap());
   }
 
-  // Método para obtener un usuario desde Firestore
+  // Método para obtener un usuario desde Firestore (without loading companies)
   static Future<User?> getUser(String documentId) async {
     final userRef = FirebaseFirestore.instance.collection('users').doc(documentId);
     final docSnapshot = await userRef.get();
 
     if (docSnapshot.exists) {
-      return User.fromMap(docSnapshot.data()!, docSnapshot.id); // Le pasamos el ID del documento
+      return User.fromMap(docSnapshot.data()!, docSnapshot.id);
     }
-    return null; // Si el usuario no existe
+    return null;
   }
 }

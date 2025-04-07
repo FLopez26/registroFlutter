@@ -15,10 +15,22 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static bool isAdminEmail = false;
-  static bool isAdminPass = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UserCubit>().getAllUsers();
+      print("Estado de UserCubit después de cargar:");
+      print(context.read<UserCubit>().state);
+      context.read<AdminCubit>().getAllAdmins();
+    });
+  }
+
   late String emailTyped;
   late String passwordTyped;
+  bool isAdminEmail = false;
+  bool isAdminPass = false;
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -93,78 +105,64 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   bool _isValidEmail(String email) {
-    bool emailFound = false;
     final userCubit = context.read<UserCubit>();
     final adminCubit = context.read<AdminCubit>();
+    final trimmedEmail = email.trim(); // Elimina espacios en blanco al inicio y al final
 
-    // Obtener todos los usuarios y administradores
-    userCubit.getAllUsers();
-    adminCubit.getAllAdmins();
-
-    // Comprobar si el correo está en los administradores
-    adminCubit.state.forEach((admin) {
-      if (admin.email == email) {
+    for (var admin in adminCubit.state) {
+      if (admin.email.trim() == trimmedEmail) { // Elimina espacios en blanco al comparar
         isAdminEmail = true;
-        emailTyped = email;
-        emailFound = true;
+        emailTyped = trimmedEmail;
+        return true;
       }
-    });
-
-    // Comprobar si el correo está en los usuarios
-    if (!emailFound) {
-      userCubit.state.forEach((user) {
-        if (user.email == email) {
-          emailTyped = email;
-          emailFound = true;
-        }
-      });
     }
 
-    return emailFound;
+    for (var user in userCubit.state) {
+      if (user.email.trim() == trimmedEmail) { // Elimina espacios en blanco al comparar
+        emailTyped = trimmedEmail;
+        return true;
+      }
+    }
+
+    return false;
   }
 
   bool _isValidPassword(String password) {
-    bool passwordValid = false;
-
+    isAdminPass = false;
     final userCubit = context.read<UserCubit>();
     final adminCubit = context.read<AdminCubit>();
+    final trimmedPassword = password.trim(); // Elimina espacios en blanco
 
-    // Si es admin, se valida la contraseña con los administradores
     if (isAdminEmail) {
-      adminCubit.state.forEach((admin) {
-        if (admin.password == password && admin.email == emailTyped) {
-          passwordTyped = password;
+      for (var admin in adminCubit.state) {
+        if (admin.password.trim() == trimmedPassword && admin.email.trim() == emailTyped) { // Elimina espacios en blanco al comparar
+          passwordTyped = trimmedPassword;
           isAdminPass = true;
-          passwordValid = true;
+          return true;
         }
-      });
+      }
     }
 
-    // Si no es admin, se valida con los usuarios
     if (!isAdminEmail) {
-      userCubit.state.forEach((user) {
-        if (user.password == password && user.email == emailTyped) {
-          passwordTyped = password;
-          passwordValid = true;
+      for (var user in userCubit.state) {
+        if (user.password.trim() == trimmedPassword && user.email.trim() == emailTyped) { // Elimina espacios en blanco al comparar
+          passwordTyped = trimmedPassword;
+          return true;
         }
-      });
+      }
     }
 
-    return passwordValid;
+    return false;
   }
 
   void _login() {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Inicio de sesión exitoso")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Inicio de sesión exitoso")));
       FocusScope.of(context).unfocus();
 
-      // Si es un administrador
       if (isAdminEmail && isAdminPass) {
-        isAdminEmail = false;
-        isAdminPass = false;
-
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -172,24 +170,28 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       } else {
-        // Si no es un administrador, buscamos al usuario
-        late User userSelected;
-
-        // Busca el usuario que coincide con el email y la contraseña
         final userCubit = context.read<UserCubit>();
-        userCubit.state.forEach((user) {
+        User? userSelected;
+
+        for (var user in userCubit.state) {
           if (user.email == emailTyped && user.password == passwordTyped) {
             userSelected = user;
+            break;
           }
-        });
+        }
 
-        // Navegar a la página de usuario
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SigningPage(user: userSelected),
-          ),
-        );
+        if (userSelected != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SigningPage(user: userSelected!),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Usuario o contraseña incorrectos")),
+          );
+        }
       }
     }
   }
