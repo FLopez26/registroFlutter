@@ -29,6 +29,7 @@ class WorkPoint {
     );
   }
 
+  // Método para guardar el WorkPoint en Firestore
   Future<void> save(String userId, String companyId) async {
     final wpRef = FirebaseFirestore.instance
         .collection('users')
@@ -36,8 +37,26 @@ class WorkPoint {
         .collection('companies')
         .doc(companyId)
         .collection('workPoints')
-        .doc();
+        .doc(); // Generamos un nuevo ID
     id = wpRef.id;
-    await wpRef.set(toMap());
+    await wpRef.set(toMap()); // Guardamos el WorkPoint en Firestore
+  }
+
+  // Método para obtener un WorkPoint desde Firestore usando su ID
+  static Future<WorkPoint?> getWorkPoint(String userId, String companyId, String workPointId) async {
+    final wpRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('companies')
+        .doc(companyId)
+        .collection('workPoints')
+        .doc(workPointId);
+
+    final docSnapshot = await wpRef.get();
+
+    if (docSnapshot.exists) {
+      return WorkPoint.fromMap(docSnapshot.data()!);
+    }
+    return null; // Si no existe el WorkPoint
   }
 }

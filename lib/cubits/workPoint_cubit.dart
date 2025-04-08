@@ -5,57 +5,112 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class WorkPointCubit extends Cubit<List<WorkPoint>> {
   WorkPointCubit() : super([]);
 
-  // Método para obtener los puntos de trabajo de una compañía
-  Future<void> getWorkPoints(String userId, String companyId) async {
+  // Método para obtener los WorkPoints de una empresa
+  Future<void> getWorkPoints(String companyId) async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('companies')
+      final companyDoc = await FirebaseFirestore.instance
+          .collection('Company')
           .doc(companyId)
-          .collection('workPoints')
           .get();
 
-      final workPoints = snapshot.docs.map((doc) {
-        final wp = WorkPoint.fromMap(doc.data());
-        wp.id = doc.id;
-        return wp;
-      }).toList();
+      if (companyDoc.exists) {
+        final rawWorkPoints = companyDoc.data()?['workPoints'];
 
-      emit(workPoints); // Emitir la nueva lista de WorkPoints
+        if (rawWorkPoints != null && rawWorkPoints is List) {
+          List<WorkPoint> workPoints = [];
+
+          for (var workPointRef in rawWorkPoints) {
+            if (workPointRef is DocumentReference) {
+              if (workPointRef.parent.path == 'WorkPoint') {
+                try {
+                  final workPointSnapshot = await workPointRef.get();
+                  if (workPointSnapshot.exists) {
+                    final workPointData = workPointSnapshot.data();
+                    if (workPointData != null && workPointData is Map<String, dynamic>) {
+                      workPoints.add(WorkPoint.fromMap(workPointData)..id = workPointSnapshot.id);
+                    } else {
+                      print("⚠️ Datos vacíos o incorrectos en ${workPointRef.path}");
+                    }
+                  } else {
+                    print("⚠️ Documento de WorkPoint no existe: ${workPointRef.path}");
+                  }
+                } catch (e) {
+                  print("⚠️ Error al procesar ${workPointRef.path}: $e");
+                }
+              } else {
+                print("⚠️ Referencia a WorkPoint incorrecta: ${workPointRef.path} no pertenece a la colección WorkPoint");
+              }
+            }
+          }
+
+          emit(workPoints);
+        } else {
+          print("⚠️ No hay referencias de WorkPoints en la compañía ${companyId}");
+          emit([]);
+        }
+      } else {
+        print("⚠️ Documento de la compañía no existe: $companyId");
+        emit([]);
+      }
     } catch (e) {
-      print("Error obteniendo WorkPoints: $e");
-      emit([]); // Emitir una lista vacía en caso de error
+      print("❌ Error general obteniendo WorkPoints: $e");
+      emit([]);
     }
   }
 
   // Método para guardar un WorkPoint
   Future<void> saveWorkPoint(WorkPoint workPoint, String userId, String companyId) async {
     try {
-      await workPoint.save(userId, companyId); // Guardamos el WorkPoint en Firestore
-      // Después de guardar, obtenemos de nuevo la lista de WorkPoints
-      await getWorkPoints(userId, companyId);
+      final workPointRef = await FirebaseFirestore.instance
+          .collection('WorkPoint')
+          .add(workPoint.toMap());
+
+      workPoint.id = workPointRef.id;
+
+      final companyDocRef = FirebaseFirestore.instance
+          .collection('User')
+          .doc(userId)
+          .collection('companies')
+          .doc(companyId);
+
+      await companyDocRef.update({
+        'workPoints': FieldValue.arrayUnion([workPointRef]),
+      });
+
+      await getWorkPoints(companyId);
     } catch (e) {
-      print("Error guardando WorkPoint: $e");
+      print("❌ Error guardando WorkPoint: $e");
     }
   }
 
   // Método para eliminar un WorkPoint
   Future<void> deleteWorkPoint(String userId, String companyId, String workPointId) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
+      final workPointRefToDelete = FirebaseFirestore.instance
+          .collection('WorkPoint')
+          .doc(workPointId);
+
+      final companyDocRef = FirebaseFirestore.instance
+          .collection('User')
           .doc(userId)
           .collection('companies')
-          .doc(companyId)
-          .collection('workPoints')
-          .doc(workPointId)
-          .delete();
+          .doc(companyId);
 
-      // Después de eliminarlo, obtenemos la lista actualizada de WorkPoints
-      await getWorkPoints(userId, companyId);
+      final workPointSnapshotToDelete = await workPointRefToDelete.get();
+
+      if (workPointSnapshotToDelete.exists) {
+        await companyDocRef.update({
+          'workPoints': FieldValue.arrayRemove([workPointSnapshotToDelete.reference]),
+        });
+
+        await workPointRefToDelete.delete();
+
+        await getWorkPoints(companyId);
+      } else {
+        print("⚠️ No se encontró el WorkPoint a eliminar.");
+      }
     } catch (e) {
-      print("Error eliminando WorkPoint: $e");
+      print("❌ Error eliminando WorkPoint: $e");
     }
   }
 }

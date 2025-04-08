@@ -3,14 +3,14 @@ import 'package:fichajes/models/app/admin_model.dart';
 import 'package:fichajes/models/app/user_model.dart';
 import 'package:flutter/material.dart';
 
-import '../../../profile/view/profile_page.dart';
+import '../../../profile/view/user/profile_page.dart';
 
 class SigningAdminPage extends StatefulWidget {
-  final String user;
+  final Admin admin;
 
   const SigningAdminPage({
     super.key,
-    required this.user,
+    required this.admin,
   });
 
   @override
@@ -30,10 +30,9 @@ class _SigningAdminPageState extends State<SigningAdminPage> {
 
   Future<void> _loadAdminAndEmployees() async {
     try {
-      // Buscar el admin por email
       final adminSnapshot = await FirebaseFirestore.instance
           .collection('admins')
-          .where('email', isEqualTo: widget.user)
+          .where('email', isEqualTo: widget.admin)
           .get();
 
       if (adminSnapshot.docs.isEmpty) {
@@ -86,7 +85,7 @@ class _SigningAdminPageState extends State<SigningAdminPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ProfilePage(user: widget.user),
+                  builder: (context) => ProfilePage(user: widget.admin.email),
                 ),
               );
             },

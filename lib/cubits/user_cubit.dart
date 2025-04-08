@@ -59,13 +59,13 @@ class UserCubit extends Cubit<List<User>> {
           try {
             final companySnapshot = await item.get();
             if (companySnapshot.exists) {
-              companies.add(Company.fromMap(companySnapshot.data() as Map<String, dynamic>));
+              companies.add(Company.fromMap(companySnapshot.data() as Map<String, dynamic>, companySnapshot.id));
             }
           } catch (e) {
             print("Error al obtener compañía: $e");
           }
         } else if (item is Map<String, dynamic>) {
-          companies.add(Company.fromMap(item));
+          companies.add(Company.fromMap(item, item['id']));
         }
       }
     }
@@ -77,4 +77,24 @@ class UserCubit extends Cubit<List<User>> {
       companies: companies,
     );
   }
+
+  Future<void> updateWorkingStatus(String userId) async {
+    try {
+      final userRef = FirebaseFirestore.instance.collection('User').doc(userId);
+      final userSnapshot = await userRef.get();
+
+      if (userSnapshot.exists) {
+        final currentWorkingStatus = userSnapshot.data()?['working'] ?? false;
+        await userRef.update({'working': !currentWorkingStatus});
+
+        // Optionally, you might want to emit the updated user data
+        getUser(userId);
+      } else {
+        print("Error: No se encontró el usuario con ID: $userId");
+      }
+    } catch (e) {
+      print("Error al actualizar el estado de trabajo: $e");
+    }
+  }
+
 }

@@ -1,51 +1,79 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fichajes/models/app/admin_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fichajes/models/app/company_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminCubit extends Cubit<List<Admin>> {
   AdminCubit() : super([]);
 
-  // Método para obtener un solo administrador por su ID
   Future<void> getAdmin(String documentId) async {
     try {
       final admin = await Admin.getAdmin(documentId);
       if (admin != null) {
-        emit([admin]); // Emite el administrador como una lista de un solo elemento
+        final adminWithCompanies = await _loadCompaniesForAdmin(admin, documentId);
+        emit([adminWithCompanies]);
       } else {
-        emit([]); // Si no se encuentra el administrador, emite una lista vacía
+        emit([]);
       }
     } catch (e) {
-      // Manejar errores si es necesario
+      print("Error al obtener admin con compañías: $e");
       emit([]);
     }
   }
 
-  // Método para obtener todos los administradores desde Firestore
   Future<void> getAllAdmins() async {
     try {
       final querySnapshot = await FirebaseFirestore.instance.collection('Admin').get();
-
-      List<Admin> admins = [];
+      List<Admin> adminsWithCompanies = [];
       for (var doc in querySnapshot.docs) {
         var adminData = doc.data();
         var admin = Admin.fromMap(adminData, doc.id);
-        admins.add(admin);
+        final adminWithCompanies = await _loadCompaniesForAdmin(admin, doc.id);
+        adminsWithCompanies.add(adminWithCompanies);
       }
-
-      emit(admins); // Emite la lista de administradores
+      emit(adminsWithCompanies);
     } catch (e) {
-      // Manejar errores si es necesario
+      print("Error al obtener todos los admins con compañías: $e");
       emit([]);
     }
   }
 
-  // Método para guardar un nuevo administrador
   Future<void> saveAdmin(Admin admin) async {
     try {
       await admin.save();
-      emit([admin]); // Emite el administrador guardado como una lista de un solo elemento
+      final adminWithCompanies = await _loadCompaniesForAdmin(admin, admin.id!);
+      emit([adminWithCompanies]);
     } catch (e) {
-      // Manejar errores si es necesario
+      print("Error al guardar admin: $e");
     }
+  }
+
+  Future<Admin> _loadCompaniesForAdmin(Admin admin, String adminId) async {
+    List<Company> companies = [];
+    final adminDoc = await FirebaseFirestore.instance.collection('Admin').doc(adminId).get();
+    final companiesData = adminDoc.data()?['companies'];
+
+    if (companiesData != null && companiesData is List) {
+      for (var item in companiesData) {
+        if (item is DocumentReference) {
+          try {
+            final companySnapshot = await item.get();
+            if (companySnapshot.exists) {
+              companies.add(Company.fromMap(companySnapshot.data() as Map<String, dynamic>, companySnapshot.id));
+            }
+          } catch (e) {
+            print("Error al obtener compañía: $e");
+          }
+        } else if (item is Map<String, dynamic>) {
+          companies.add(Company.fromMap(item, item['id']));
+        }
+      }
+    }
+    return Admin(
+      id: admin.id,
+      email: admin.email,
+      password: admin.password,
+      companies: companies,
+    );
   }
 }

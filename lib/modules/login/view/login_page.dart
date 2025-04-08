@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fichajes/cubits/user_cubit.dart';
 import 'package:fichajes/cubits/admin_cubit.dart';
 
+import '../../../models/app/admin_model.dart';
 import '../../../models/app/user_model.dart';
 import '../../signing/view/admin/signing_admin_page.dart';
 import '../../signing/view/user/signing_page.dart';
@@ -29,8 +30,6 @@ class _LoginPageState extends State<LoginPage> {
 
   late String emailTyped;
   late String passwordTyped;
-  bool isAdminEmail = false;
-  bool isAdminPass = false;
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -107,18 +106,17 @@ class _LoginPageState extends State<LoginPage> {
   bool _isValidEmail(String email) {
     final userCubit = context.read<UserCubit>();
     final adminCubit = context.read<AdminCubit>();
-    final trimmedEmail = email.trim(); // Elimina espacios en blanco al inicio y al final
+    final trimmedEmail = email.trim();
 
     for (var admin in adminCubit.state) {
-      if (admin.email.trim() == trimmedEmail) { // Elimina espacios en blanco al comparar
-        isAdminEmail = true;
+      if (admin.email.trim() == trimmedEmail) {
         emailTyped = trimmedEmail;
         return true;
       }
     }
 
     for (var user in userCubit.state) {
-      if (user.email.trim() == trimmedEmail) { // Elimina espacios en blanco al comparar
+      if (user.email.trim() == trimmedEmail) {
         emailTyped = trimmedEmail;
         return true;
       }
@@ -128,27 +126,21 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   bool _isValidPassword(String password) {
-    isAdminPass = false;
     final userCubit = context.read<UserCubit>();
     final adminCubit = context.read<AdminCubit>();
-    final trimmedPassword = password.trim(); // Elimina espacios en blanco
+    final trimmedPassword = password.trim();
 
-    if (isAdminEmail) {
-      for (var admin in adminCubit.state) {
-        if (admin.password.trim() == trimmedPassword && admin.email.trim() == emailTyped) { // Elimina espacios en blanco al comparar
-          passwordTyped = trimmedPassword;
-          isAdminPass = true;
-          return true;
-        }
+    for (var admin in adminCubit.state) {
+      if (admin.password.trim() == trimmedPassword && admin.email.trim() == emailTyped) {
+        passwordTyped = trimmedPassword;
+        return true;
       }
     }
 
-    if (!isAdminEmail) {
-      for (var user in userCubit.state) {
-        if (user.password.trim() == trimmedPassword && user.email.trim() == emailTyped) { // Elimina espacios en blanco al comparar
-          passwordTyped = trimmedPassword;
-          return true;
-        }
+    for (var user in userCubit.state) {
+      if (user.password.trim() == trimmedPassword && user.email.trim() == emailTyped) {
+        passwordTyped = trimmedPassword;
+        return true;
       }
     }
 
@@ -162,11 +154,21 @@ class _LoginPageState extends State<LoginPage> {
       ).showSnackBar(const SnackBar(content: Text("Inicio de sesión exitoso")));
       FocusScope.of(context).unfocus();
 
-      if (isAdminEmail && isAdminPass) {
+      final adminCubit = context.read<AdminCubit>();
+      Admin? adminSelected;
+
+      for (var admin in adminCubit.state) {
+        if (admin.email == emailTyped && admin.password == passwordTyped) {
+          adminSelected = admin;
+          break;
+        }
+      }
+
+      if (adminSelected != null) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SigningAdminPage(user: "Administrator"),
+            builder: (context) => SigningAdminPage(admin: adminSelected!),
           ),
         );
       } else {

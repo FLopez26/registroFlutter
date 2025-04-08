@@ -3,16 +3,15 @@ import 'package:fichajes/models/app/workPoint_model.dart';
 
 class Company {
   final String name;
-  final List<WorkPoint> workPoints; // Lista de objetos WorkPoint
-  String? id; // ID generado automáticamente por Firestore
+  final List<WorkPoint> workPoints;
+  String? id;
 
   Company({
     required this.name,
     required this.workPoints,
-    this.id, // El ID es opcional, porque lo asignará Firestore
+    this.id,
   });
 
-  // Convertir el objeto Company a un mapa (para enviar a Firebase)
   Map<String, dynamic> toMap() {
     return {
       'name': name,
@@ -20,13 +19,11 @@ class Company {
     };
   }
 
-  // Crear un objeto Company a partir de un mapa (cuando se recibe desde Firebase)
-  factory Company.fromMap(Map<String, dynamic> map) {
+  factory Company.fromMap(Map<String, dynamic> map, String documentId) {
     return Company(
+      id: documentId,
       name: map['name'],
-      workPoints: (map['workPoints'] as List)
-          .map((workPointMap) => WorkPoint.fromMap(workPointMap))
-          .toList(),
+      workPoints: [],
     );
   }
 
@@ -36,8 +33,8 @@ class Company {
         .collection('users')
         .doc(userId)
         .collection('companies')
-        .doc(); // Firestore genera un ID automáticamente
-    this.id = companyRef.id; // Asignamos el ID generado por Firestore
+        .doc();
+    this.id = companyRef.id;
     await companyRef.set(toMap());
   }
 
@@ -51,8 +48,10 @@ class Company {
     final docSnapshot = await companyRef.get();
 
     if (docSnapshot.exists) {
-      return Company.fromMap(docSnapshot.data()!);
+      return Company.fromMap(docSnapshot.data()!, docSnapshot.id);
     }
     return null; // Si la compañía no existe
   }
+
+  //TODO eliminar
 }

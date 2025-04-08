@@ -15,6 +15,8 @@ void main() async {
 }
 
 class FichajesApp extends StatelessWidget {
+  const FichajesApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(

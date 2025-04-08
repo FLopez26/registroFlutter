@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fichajes/models/app/company_model.dart';
 import 'package:fichajes/models/app/user_model.dart';
 import 'package:fichajes/modules/geolocator/view/geolocator_page.dart';
@@ -8,9 +7,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../../../cubits/company_cubit.dart';
-import '../../../../cubits/workPoint_cubit.dart'; // Import WorkPointCubit
+import '../../../../cubits/user_cubit.dart';
+import '../../../../cubits/workPoint_cubit.dart';
 import '../../../../models/app/workPoint_model.dart';
-import '../../../profile/view/profile_page.dart';
+import '../../../profile/view/user/profile_page.dart';
 
 class SigningPage extends StatefulWidget {
   final User user;
@@ -41,7 +41,7 @@ class _SigningPageState extends State<SigningPage> {
   }
 
   Future<void> _loadWorkPoints(String companyId) async {
-    await context.read<WorkPointCubit>().getWorkPoints(widget.user.id!, companyId);
+    await context.read<WorkPointCubit>().getWorkPoints(companyId);
     setState(() {
       workPoints = context.read<WorkPointCubit>().state;
       workPointSelectedName = null;
@@ -237,13 +237,15 @@ class _SigningPageState extends State<SigningPage> {
       return;
     }
 
+    context.read<UserCubit>().updateWorkingStatus(widget.user.id!);
+
     final currentTime = TimeOfDay.now().format(context);
     showDialog(
       context: context,
       builder: (_) => ConfirmSigningDialog(
         company: companies.firstWhere((c) => c.id == companySelectedId).name,
         position: selectedWorkPoint.name,
-        time: currentTime,
+        time: currentTime
       ),
     );
   }
@@ -261,4 +263,5 @@ class _SigningPageState extends State<SigningPage> {
     return await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
   }
+
 }
