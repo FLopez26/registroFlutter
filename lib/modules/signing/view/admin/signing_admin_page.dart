@@ -1,7 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fichajes/cubits/admin_cubit.dart';
 import 'package:fichajes/models/app/admin_model.dart';
 import 'package:fichajes/models/app/user_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../profile/view/user/profile_page.dart';
 
@@ -25,45 +26,23 @@ class _SigningAdminPageState extends State<SigningAdminPage> {
   @override
   void initState() {
     super.initState();
-    _loadAdminAndEmployees();
+    admin = widget.admin;
+    _loadEmployees();
   }
 
-  Future<void> _loadAdminAndEmployees() async {
-    try {
-      final adminSnapshot = await FirebaseFirestore.instance
-          .collection('admins')
-          .where('email', isEqualTo: widget.admin)
-          .get();
-
-      if (adminSnapshot.docs.isEmpty) {
-        setState(() {
-          isLoading = false;
-        });
-        return;
-      }
-
-      final adminData = adminSnapshot.docs.first;
-      final adminModel = Admin.fromMap(adminData.data(), adminData.id);
-      final companyIds = adminModel.companies.map((c) => c.id).toList();
-
-      // Buscar usuarios que estén en alguna de esas empresas
-      final usersSnapshot =
-      await FirebaseFirestore.instance.collection('users').get();
-
-      final filteredUsers = usersSnapshot.docs.map((doc) {
-        return User.fromMap(doc.data(), doc.id);
-      }).where((user) {
-        final userCompanyIds = user.companies.map((c) => c.id).toSet();
-        return userCompanyIds.any((id) => companyIds.contains(id));
-      }).toList();
-
+  Future<void> _loadEmployees() async {
+    setState(() {
+      isLoading = true;
+      employees = [];
+    });
+    if (admin != null) {
+      final adminCubit = context.read<AdminCubit>();
+      final fetchedEmployees = await adminCubit.getUsersFromCompanies(admin!);
       setState(() {
-        admin = adminModel;
-        employees = filteredUsers;
+        employees = fetchedEmployees;
         isLoading = false;
       });
-    } catch (e) {
-      print("Error al cargar datos de admin o empleados: $e");
+    } else {
       setState(() {
         isLoading = false;
       });
@@ -75,7 +54,7 @@ class _SigningAdminPageState extends State<SigningAdminPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.cyan,
-        title: const Text("Vista de administrador"),
+        title: const Text("Vista de Administrador"),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(

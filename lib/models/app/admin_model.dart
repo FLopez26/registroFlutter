@@ -24,11 +24,23 @@ class Admin {
   }
 
   factory Admin.fromMap(Map<String, dynamic> map, String documentId) {
+    var companiesList = <Company>[];
+    if (map['companies'] != null && map['companies'] is List) {
+      companiesList = (map['companies'] as List<dynamic>)
+          .map((companyData) {
+        if (companyData is DocumentReference) {
+          return Company(id: companyData.id, name: '', workPoints: []);
+        } else if (companyData is Map<String, dynamic>) {
+          return Company.fromMap(companyData, companyData['id'] ?? '');
+        }
+        return Company(id: '', name: '', workPoints: []);
+      }).toList();
+    }
     return Admin(
       id: documentId,
       email: map['email'],
       password: map['password'],
-      companies: [],
+      companies: companiesList,
     );
   }
 
