@@ -1,6 +1,7 @@
 import 'package:fichajes/models/app/admin_model.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fichajes/models/app/company_model.dart';
+import 'package:fichajes/cubits/user_cubit.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/app/user_model.dart';
@@ -12,7 +13,10 @@ class AdminCubit extends Cubit<List<Admin>> {
     try {
       final admin = await Admin.getAdmin(documentId);
       if (admin != null) {
-        final adminWithCompanies = await _loadCompaniesForAdmin(admin, documentId);
+        final adminWithCompanies = await _loadCompaniesForAdmin(
+          admin,
+          documentId,
+        );
         emit([adminWithCompanies]);
       } else {
         emit([]);
@@ -25,7 +29,8 @@ class AdminCubit extends Cubit<List<Admin>> {
 
   Future<void> getAllAdmins() async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance.collection('Admin').get();
+      final querySnapshot =
+          await FirebaseFirestore.instance.collection('Admin').get();
       List<Admin> adminsWithCompanies = [];
       for (var doc in querySnapshot.docs) {
         var adminData = doc.data();
@@ -52,7 +57,8 @@ class AdminCubit extends Cubit<List<Admin>> {
 
   Future<Admin> _loadCompaniesForAdmin(Admin admin, String adminId) async {
     List<Company> companies = [];
-    final adminDoc = await FirebaseFirestore.instance.collection('Admin').doc(adminId).get();
+    final adminDoc =
+        await FirebaseFirestore.instance.collection('Admin').doc(adminId).get();
     final companiesData = adminDoc.data()?['companies'];
 
     if (companiesData != null && companiesData is List) {
@@ -61,7 +67,12 @@ class AdminCubit extends Cubit<List<Admin>> {
           try {
             final companySnapshot = await item.get();
             if (companySnapshot.exists) {
-              companies.add(Company.fromMap(companySnapshot.data() as Map<String, dynamic>, companySnapshot.id));
+              companies.add(
+                Company.fromMap(
+                  companySnapshot.data() as Map<String, dynamic>,
+                  companySnapshot.id,
+                ),
+              );
             }
           } catch (e) {
             print("Error al obtener compañía: $e");
@@ -79,72 +90,43 @@ class AdminCubit extends Cubit<List<Admin>> {
     );
   }
 
-  // Future<List<User>> getUsersFromCompanies(Admin admin) async {
-  //   try {
-  //     final companyIds = admin.companies.map((c) => c.id).toList();
-  //
-  //     if (companyIds.isEmpty) {
-  //       return [];
-  //     }
-  //
-  //     final usersSnapshot =
-  //     await FirebaseFirestore.instance.collection('User').get();
-  //
-  //     final filteredUsers = usersSnapshot.docs.map((doc) {
-  //       return User.fromMap(doc.data(), doc.id);
-  //     }).where((user) {
-  //       final userCompanyIds = user.companies.map((c) => c.id).toSet();
-  //       return userCompanyIds.any((id) => companyIds.contains(id));
-  //     }).toList();
-  //
-  //     return filteredUsers;
-  //   } catch (e) {
-  //     print("Error al obtener empleados de las empresas del admin: $e");
-  //     return [];
-  //   }
-  // }
-
   Future<List<User>> getUsersFromCompanies(Admin admin) async {
-    print("➡️ getUsersFromCompanies llamado para admin con ID: ${admin.id}");
+    List<User> usersInAdminCompanies = [];
     try {
-      final companyIds = admin.companies.map((c) => c.id).toList();
-      print("🏢 IDs de compañías del admin: $companyIds");
+      final adminCompanyIds = admin.companies.map((c) => c.id).toSet();
+      final usersSnapshot = await FirebaseFirestore.instance.collection('User').get();
 
-      if (companyIds.isEmpty) {
-        print("⚠️ El admin no tiene compañías asociadas.");
-        return [];
-      }
-
-      final usersSnapshot =
-      await FirebaseFirestore.instance.collection('User').get();
-      print("👤 Número de usuarios obtenidos de Firebase: ${usersSnapshot.docs.length}");
-
-      final filteredUsers = usersSnapshot.docs.map((doc) {
-        final user = User.fromMap(doc.data(), doc.id);
-        print("➡️ Procesando usuario con ID: ${user.id}");
-        return user;
-      }).where((user) {
-        final userCompanyIds = user.companies.map((companyRef) {
-          if (companyRef is DocumentReference) {
-            return companyRef.id;
-          } else if (companyRef is String) {
-            return companyRef; // Handle case where company is stored as String ID
+      for (final userDoc in usersSnapshot.docs) {
+        final userData = userDoc.data();
+        if (userData.containsKey('companies')) {
+          List<String> userCompanyIds = [];
+          final companiesData = userData['companies'];
+          if (companiesData != null && companiesData is List) {
+            for (var item in companiesData) {
+              if (item is DocumentReference) {
+                userCompanyIds.add(item.id);
+              } else if (item is Map<String, dynamic> && item.containsKey('id')) {
+                userCompanyIds.add(item['id']);
+              }
+            }
           }
-          return null;
-        }).where((id) => id != null).toSet();
 
-        print("   🔗 Compañías del usuario ${user.id} (IDs): $userCompanyIds");
-        final isEmployee = userCompanyIds.any((id) => companyIds.contains(id));
-        if (isEmployee) {
-          print("   ✅ El usuario ${user.id} está asociado a una de las compañías del admin.");
+          if (userCompanyIds.any((id) => adminCompanyIds.contains(id))) {
+            final basicUser = User(
+              id: userDoc.id,
+              email: userData['email'] ?? '',
+              password: userData['password'] ?? '',
+              working: userData['working'] ?? false,
+              companies: [],
+            );
+            final userWithCompanies = await UserCubit().loadCompaniesForUser(basicUser, userDoc.id);
+            usersInAdminCompanies.add(userWithCompanies);
+          }
         }
-        return isEmployee;
-      }).toList();
-
-      print("✅ Número de empleados encontrados para el admin: ${filteredUsers.length}");
-      return filteredUsers;
+      }
+      return usersInAdminCompanies;
     } catch (e) {
-      print("❌ Error al obtener empleados de las empresas del admin: $e");
+      print("Error getting users from companies: $e");
       return [];
     }
   }

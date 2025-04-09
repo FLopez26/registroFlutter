@@ -10,7 +10,7 @@ class UserCubit extends Cubit<List<User>> {
     try {
       final user = await User.getUser(documentId);
       if (user != null) {
-        final userWithCompanies = await _loadCompaniesForUser(user, documentId);
+        final userWithCompanies = await loadCompaniesForUser(user, documentId);
         emit([userWithCompanies]);
       } else {
         emit([]);
@@ -28,7 +28,7 @@ class UserCubit extends Cubit<List<User>> {
       for (var doc in querySnapshot.docs) {
         var userData = doc.data();
         var user = User.fromMap(userData, doc.id);
-        final userWithCompanies = await _loadCompaniesForUser(user, doc.id);
+        final userWithCompanies = await loadCompaniesForUser(user, doc.id);
         usersWithCompanies.add(userWithCompanies);
       }
       emit(usersWithCompanies);
@@ -41,14 +41,14 @@ class UserCubit extends Cubit<List<User>> {
   Future<void> saveUser(User user) async {
     try {
       await user.save();
-      final userWithCompanies = await _loadCompaniesForUser(user, user.id!);
+      final userWithCompanies = await loadCompaniesForUser(user, user.id!);
       emit([userWithCompanies]);
     } catch (e) {
       print("Error al guardar usuario: $e");
     }
   }
 
-  Future<User> _loadCompaniesForUser(User user, String userId) async {
+  Future<User> loadCompaniesForUser(User user, String userId) async {
     List<Company> companies = [];
     final userDoc = await FirebaseFirestore.instance.collection('User').doc(userId).get();
     final companiesData = userDoc.data()?['companies'];
